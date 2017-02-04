@@ -41,7 +41,7 @@ page_footer = """
 
 #define form 
 signup_form = """
-    <form action: '/' method:'post'>
+    <form method='post'>
         <table>
             <tr><td class='label'>Name: </td>
                 <td><input type = 'text' name ='name' value="%(name)s"></td><td class='error'>%(name_error)s</td></tr>
@@ -54,69 +54,71 @@ signup_form = """
             <tr><td><input type='submit' value ='Submit'></tr>
         </table>
    </form>
-    """                                   
+    """   
+    
+#validate user's input & provide error msg if input does not validate
+
+def valid_name(u_name):
+    if (not u_name) or (u_name.strip() == ""):
+        return False
+    return True    
+                
+def valid_password(u_password):
+    if (not u_password) or (u_password.strip() == ""):
+        return False
+    return True   
+                
+def valid_verify_pw(u_password, u_verify_pw):                
+    if not u_verify_pw or (u_verify_pw.strip() == ""):
+        return False
+    if not (u_password == u_verify_pw):
+        return False
+    return True
+                                                                                                                              
 class MainHandler(webapp2.RequestHandler):
-    def write_page(self, name, name_error, password="", pw_error, verify_pw = "", vpw_error, email):
+    def write_page(self, name="", name_error="", pw_error = "", vpw_error = "", email=""):
         #construct page
         page = page_header + signup_form + page_footer
-        self.response.write(page % {"name":name, "name":name_error, "email":email, "password":pw_error, "verify_pw":vpw_error})  
+        self.response.write(page % {"name":name, "name_error":name_error, "email":email, "pw_error":pw_error, "vpw_error":vpw_error})  
         
     def get(self):
         #render page
-        self.write_page(self, name = "", name_error = "", password="", pw_error = "", verify_pw = "", vpw_error = "", email="")
+        self.write_page()
         
     def post(self):
-        #get user's input
-        #error = False
+    #get user's input
         u_name = cgi.escape(self.request.get('name'))
         u_password = cgi.escape(self.request.get('password'))
         u_verify_pw = cgi.escape(self.request.get('verify_pw'))
         email = cgi.escape(self.request.get('email'))
-        
-        def valid_name(self, n):
-        #validate user's input & provide error msg if input does not validate
-            if (not n) or (n.strip() == ""):
-                name_error = "Please set your password."
-                self.response.write_page(self, name, name_error, password="", pw_error, verify_pw = "", vpw_error, email)
-                #self.redirect("/?error" + cgi.escape(error, quote=True))
-            else:
-                return n
                 
-        def valid_password(self, pw):
-            if (not pw) or (pw.strip() == ""):
-                pw_error = "Please verify your password."
-                self.response.write_page(self, name, name_error, password="", pw_error, verify_pw = "", vpw_error, email)
-                #self.redirect("/?error" + cgi.escape(error, quote=True))
-            else:
-                return pw
-                
-        def valid_verify_pw(self, verify_pw):                
-            if (not verify_pw) or (verify_pw.strip() == ""):
-                vpw_error = "Please verify your password."
-                self.response.write_page(vpw_error, quote=True)
-                #self.redirect("/?error" + cgi.escape(error, quote=True))
-            elif not (password == verify_pw):
-                vpw_error = "Your passwords do not match." 
-                self.response.write_page(self, name, name_error, password="", pw_error, verify_pw = "", vpw_error, email)
-                #self.redirect("/?error" + cgi.escape(error, quote=True))
-            else:
-                return verify_pw 
-                
-        #validate user input
+        #validate user input 
         name = valid_name(u_name)
         password = valid_password(u_password)
-        verify_pw = valid_verify_pw('u_verify_pw')      
+        verify_pw = valid_verify_pw(u_password, u_verify_pw)      
         
-        if not name and not password and not verify_pw:
-            self.response.write_page()
+        if (name and password and verify_pw):
+            self.redirect('/welcome?u_name='+ u_name)   
+        if not name:
+            name_error = "Please provide your name."
         else:
-            self.redirect('/welcome')    
+            name_error = ""
+        if not password:
+            pw_error = "Please set your password."
+        else:
+            pw_error = ""
+        if not verify_pw:
+            vpw_error = "Please verify your password."
+        else: 
+            vpw_error = ""
+        self.write_page(u_name, name_error, pw_error, vpw_error, email)
+            
                 
 class Welcome(webapp2.RequestHandler):
     def get(self):
     #if validated Welcome the new User
-        name = cgi.escape(self.request.get('name'))
-        welcome = page_header + "<h3>Welcome, " + name + "</h3>"+ page_footer
+        name = self.request.get('u_name')
+        welcome = page_header + "<h3>Welcome, " + name + "</h3>" + page_footer
         self.response.write(welcome)
         
 app = webapp2.WSGIApplication([
